@@ -24,39 +24,59 @@ def busca_e_copia(ano: int, mes: int, dia: int, protocolo: str, destino: str, ra
     if not com_horario: # Para as pastas antigas (2019-2021)
         for pasta in pastas_backup_antigas:
             caminho_base = os.path.join(raiz, pasta, str(ano), f"{int(mes):02}", f"{int(dia):02}")
+            if log_callback:
+                log_callback("PROGRESS:20")
             _log(f"Procurando em: {caminho_base}...")
 
             if not os.path.exists(caminho_base):
                 continue
 
+            # Coleta todos os arquivos para calcular progresso
+            arquivos = []
             for dirpath, _, filenames in os.walk(caminho_base):
                 for filename in filenames:
                     if protocolo in filename:
-                        origem = os.path.join(dirpath, filename)
-                        try:
-                            shutil.copy(origem, destino)
-                            _log(f"Arquivo '{filename}' copiado para '{destino}'")
-                            encontrado_nesta_raiz = True
-                        except Exception as e:
-                            _log(f"Erro ao copiar '{filename}': {e}")
+                        arquivos.append((dirpath, filename))
+            total = len(arquivos)
+            for idx, (dirpath, filename) in enumerate(arquivos):
+                origem = os.path.join(dirpath, filename)
+                try:
+                    shutil.copy(origem, destino)
+                    _log(f"Arquivo '{filename}' copiado para '{destino}'")
+                    encontrado_nesta_raiz = True
+                except Exception as e:
+                    _log(f"Erro ao copiar '{filename}': {e}")
+                # Atualiza progresso
+                if log_callback and total > 0:
+                    progresso = int(((idx + 1) / total) * 100)
+                    log_callback(f"PROGRESS:{progresso}")
     else: # Para as pastas com estrutura de horário (0.74 e 0.254)
         caminho_base = os.path.join(raiz, str(ano), str(int(mes)), str(int(dia)))
-        
+        if log_callback:
+            log_callback("PROGRESS:20")
         _log(f"Procurando em: {caminho_base} (e subpastas de horário)...")
 
         if not os.path.exists(caminho_base):
             return False
 
+        arquivos = []
         for dirpath, _, filenames in os.walk(caminho_base):
             for filename in filenames:
                 if protocolo in filename:
-                    origem = os.path.join(dirpath, filename)
-                    try:
-                        shutil.copy(origem, destino)
-                        _log(f"Arquivo '{filename}' copiado para '{destino}'")
-                        encontrado_nesta_raiz = True
-                    except Exception as e:
-                        _log(f"Erro ao copiar '{filename}': {e}")
+                    arquivos.append((dirpath, filename))
+        total = len(arquivos)
+        for idx, (dirpath, filename) in enumerate(arquivos):
+            origem = os.path.join(dirpath, filename)
+            try:
+                shutil.copy(origem, destino)
+                _log(f"Arquivo '{filename}' copiado para '{destino}'")
+                encontrado_nesta_raiz = True
+            except Exception as e:
+                _log(f"Erro ao copiar '{filename}': {e}")
+            # Atualiza progresso
+            if log_callback and total > 0:
+                progresso = int(((idx + 1) / total) * 100)
+                log_callback(f"PROGRESS:{progresso}")
     
     if not encontrado_nesta_raiz:
         _log(f"Protocolo NÃO encontrado nesta raiz: {raiz}.")
